@@ -1,0 +1,6 @@
+*.pyc
+*.swp
+# These should be auto-generated when you run chalice deploy
+.chalice/deployments
+.chalice/policy.json
+.chalice/venv

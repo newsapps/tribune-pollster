@@ -1,0 +1,5 @@
+{
+  "lambda_arn": "arn:aws:lambda:us-east-1:615594547923:function:tribune-pollster", 
+  "app_name": "tribune-pollster", 
+  "stage": "dev"
+}
