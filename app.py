@@ -21,20 +21,20 @@ def transform_answer_item(item):
         'value': None,
     }
     canonical_attrs = set(('poll_id', 'question_id', 'user_id', 'value'))
-    
+
     data['answer_id'] = item['Name']
 
     for attr in item['Attributes']:
         name = attr['Name']
         if name in canonical_attrs:
-            data[name] = attr['Value'] 
+            data[name] = attr['Value']
 
     return data
 
 def get_responses(poll_id, question_id):
     client = boto3.client('sdb')
     select = "select * from `pollster-responses` where poll_id = '{}' intersection question_id = '{}'".format(poll_id, question_id)
-       
+
     response = client.select(
         SelectExpression=select,
     )
@@ -43,7 +43,7 @@ def get_responses(poll_id, question_id):
 
 def create_response(poll_id, question_id, user_id, value):
     client = boto3.client('sdb')
-       
+
     name = str(uuid.uuid4())
 
     response = client.batch_put_attributes(
@@ -62,11 +62,11 @@ def create_response(poll_id, question_id, user_id, value):
                     },
                     {
                         'Name': 'poll_id',
-                        'Value': poll_id 
+                        'Value': poll_id
                     },
                     {
                         'Name': 'question_id',
-                        'Value': question_id 
+                        'Value': question_id
                     },
                 ]
             },
@@ -81,8 +81,12 @@ def create_response(poll_id, question_id, user_id, value):
         'value': value,
     }
 
+# AWS SimpleDB doesn't have any built-in aggregation functionality.
+# We'll handle this ourselves using the MapReduce pattern
+# (https://en.wikipedia.org/wiki/MapReduce)
+
 def map_answer(item):
-    return item['value'], 1        
+    return item['value'], 1
 
 def group_by_answer(items):
     groups = {}
@@ -99,7 +103,7 @@ def reduce_answer(answer, partial_counts):
 
     return answer, total_count
 
-def get_response_summary(poll_id, question_id):    
+def get_response_summary(poll_id, question_id):
     answers = get_responses(poll_id, question_id)
 
     total = 0
@@ -111,7 +115,7 @@ def get_response_summary(poll_id, question_id):
         num_answers[answer] = answer_total_count
         total += answer_total_count
 
-    num_answers['__total__'] = total    
+    num_answers['__total__'] = total
 
     return num_answers
 
@@ -135,17 +139,16 @@ def poll_responses(poll_id, question_id):
             ]
         }
 
-    elif request.method == 'GET':  
+    elif request.method == 'GET':
         answers = get_responses(poll_id, question_id)
         return {
-            'responses': answers,    
+            'responses': answers,
         }
-       
+
 
 @app.route('/polls/{poll_id}/questions/{question_id}/summary',
         methods=['GET'])
 def poll_summary(poll_id, question_id):
-
     return {
         'poll_id': poll_id ,
         'question_id': question_id,
