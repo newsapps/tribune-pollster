@@ -39,7 +39,12 @@ def get_responses(poll_id, question_id):
         SelectExpression=select,
     )
 
-    return [transform_answer_item(item) for item in response['Items']]
+    try:
+        raw_items = response['Items']
+    except KeyError:
+        return []
+
+    return [transform_answer_item(item) for item in raw_items] 
 
 def create_response(poll_id, question_id, user_id, value):
     client = boto3.client('sdb')
